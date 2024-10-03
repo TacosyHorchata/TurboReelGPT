@@ -180,7 +180,7 @@ async def main():
     logging.info("Starting the AI Short Generator process.")  # Log the start of the process
     openai_api_key = os.getenv("OPENAI_API_KEY")
     ai_short_gen = AIShortGenerator(openai_api_key)  # Use getenv for safer access to environment variables
-    video_path = ai_short_gen.download_video('https://www.youtube.com/watch?v=bCB_NKPh1es')
+    video_path = ai_short_gen.download_video('https://www.youtube.com/watch?v=-yPjP85CbQE')
     if video_path:
         #logging.info(f"Video downloaded: {video_path}")  # Log the downloaded video path
         ai_short_gen.cut_video(video_path, '00:00:10', '00:00:20')
