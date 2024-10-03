@@ -6,6 +6,9 @@
 
 Just like Midjourney changed the game for images, TurboReelGPT is here to transform how we make videos. Our mission is to help creators easily produce videos that connect with their audience on a human level.
 
+- **Example YouTube Video**: Check out this [example video](https://www.youtube.com/watch?v=Dljw1VYg-g0&list=TLGG7jhQJ1_OX9gwMzEwMjAyNA) to see what you can create with TurboReelGPT.
+![Video Preview](https://img.youtube.com/vi/Dljw1VYg-g0/0.jpg)
+
 ### Our Roadmap
 
 1. **Make Storytelling Even Better**: Work on improving how we tell stories in videos.
@@ -59,3 +62,5 @@ We’d love your help! If you want to contribute to TurboReelGPT, here’s what 
 2. **Create a new branch** for your feature or fix.
 3. **Make your changes and commit them**.
 4. **Push your branch** and submit a pull request.
+
+- **Join our Discord**: Connect with us and other creators on our [Discord server](https://discord.gg/4dnynCSN).
