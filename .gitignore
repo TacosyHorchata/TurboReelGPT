@@ -1,0 +1,12 @@
+.env
+venv/
+
+# Ignore all files in the assets, result, and downloads directories
+assets/*
+result/*
+downloads/*
+
+# But keep the directories themselves
+!assets/
+!result/
+!downloads/
