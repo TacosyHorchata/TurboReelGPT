@@ -18,6 +18,7 @@ moviepy==1.0.3
 mutagen==1.47.0
 numpy==2.1.1
 openai==1.51.0
+opencv-python==4.10.0.84
 pillow==10.4.0
 proglog==0.1.10
 pycryptodomex==3.21.0

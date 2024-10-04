@@ -7,6 +7,7 @@ import whisper
 import pysrt  # or any other subtitle handling library
 from yt_dlp import YoutubeDL
 from pathlib import Path  # Import Path for file handling
+from PIL import Image
 
 from dotenv import load_dotenv  # To load environment variables
 
@@ -16,6 +17,8 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
+import random  # Import random module
+
 class AIShortGenerator:
     def __init__(self, openai_api_key):
         self.openai = OpenAI(api_key=openai_api_key)  # Initialize OpenAI with the API key
@@ -23,7 +26,7 @@ class AIShortGenerator:
     def download_video(self, youtube_url):
         try:
             ydl_opts = {
-                'format': 'bestvideo[height<=360]+bestaudio',
+                'format': 'bestvideo[height<=720]+bestaudio',
                 'outtmpl': 'downloads/%(title)s.%(ext)s',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
@@ -60,10 +63,10 @@ class AIShortGenerator:
         try:
             completion = self.openai.chat.completions.create(  # Async call to create chat completion
                 model="gpt-3.5-turbo-0125",
-                max_tokens=100,
+                max_tokens=250,
                 messages=[
                     {"role": "system", "content": "You are a reddit stories narrator"},
-                    {"role": "user", "content": f"Tell a reddit storie based on the following points: {key_points}"}
+                    {"role": "user", "content": f"Tell a 20 seconds reddit storie based on the following points: {key_points}"}
                 ]
             )
             logging.info("Script generated successfully.")
@@ -84,7 +87,6 @@ class AIShortGenerator:
             logging.info("Subtitles generated and saved successfully.")
         except Exception as e:
             logging.error(f"Error generating subtitles: {e}")
-
 
     def speech_to_text(self, audio_file):
         try:
@@ -153,12 +155,22 @@ class AIShortGenerator:
             
             # Create annotated clips based on the loaded subtitles
             annotated_clips = [
-                TextClip(sub.text, fontsize=40, color='cyan', font='Arial', stroke_color='green', stroke_width=0.5)  # Added stroke color and width for better contrast
+                TextClip(sub.text, fontsize=42, color='white', font='Arial')  # Added stroke color and width for better contrast
                 .set_position('center')
                 .set_start(sub.start.ordinal / 1000)  # Convert to seconds
                 .set_duration((sub.end.ordinal - sub.start.ordinal) / 1000)  # Set duration in seconds
                 for sub in subtitles if sub.start is not None and sub.end is not None
             ]
+
+            # Crop the video to TikTok format (9:16 aspect ratio)
+            video_width, video_height = video_clip.size
+            target_aspect_ratio = 9 / 16
+            target_height = video_height
+            target_width = int(target_height * target_aspect_ratio)
+
+            if target_width < video_width:
+                # Center crop horizontally
+                final_clip = final_clip.crop(x_center=video_width / 2, width=target_width, height=target_height)
 
             # Combine the video and subtitle clips
             final_clip = CompositeVideoClip([final_clip] + annotated_clips)
@@ -174,27 +186,52 @@ class AIShortGenerator:
             logging.error(f"Error loading subtitles: {e}")
             return []  # Return empty list on failure
 
+# Define necessary parameters
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+YOUTUBE_URL = 'https://www.youtube.com/watch?v=gkeQUHvUvIE'
+SCRIPT = "horror story of an astronaut stranded in space"
 
 # Example Usage
 async def main():
     logging.info("Starting the AI Short Generator process.")  # Log the start of the process
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    ai_short_gen = AIShortGenerator(openai_api_key)  # Use getenv for safer access to environment variables
-    video_path = ai_short_gen.download_video('https://www.youtube.com/watch?v=-yPjP85CbQE')
+    ai_short_gen = AIShortGenerator(OPENAI_API_KEY)  # Use getenv for safer access to environment variables
+    video_path = ai_short_gen.download_video(YOUTUBE_URL)
     if video_path:
         #logging.info(f"Video downloaded: {video_path}")  # Log the downloaded video path
-        ai_short_gen.cut_video(video_path, '00:00:10', '00:00:20')
-        script = await ai_short_gen.generate_script("fiction and startups")
+        script = await ai_short_gen.generate_script(SCRIPT)
         if script:
             logging.info("Script generated successfully.")  # Log successful script generation
             audio_path = await ai_short_gen.generate_voice(script)  # Store the generated audio path
             if audio_path:  # Check if audio generation was successful
-                ai_short_gen.generate_subtitles(audio_path)
-                ai_short_gen.add_audio_to_video(video_path, audio_path, 'assets/subtitles.srt')  # Add audio and subtitles to the original video  # Call to generate subtitles
+                # Get the audio length
+                audio_clip = AudioFileClip(str(audio_path))
+                audio_length = audio_clip.duration  # Get the duration of the audio in seconds
+                audio_clip.close()  # Close the audio clip to free resources
+                video_length = VideoFileClip(video_path).duration
+                
+                max_start_time = video_length - audio_length
+                start_time = random.uniform(0, max_start_time)
+                end_time = start_time + audio_length  # Use video_length instead of video
+
+                # Calculate the maximum start time
+                if max_start_time > 0:
+                    cut_video_path = ai_short_gen.cut_video(video_path, start_time, end_time)  # Use random start time
+                    if cut_video_path:
+                        logging.info(f"Video cut successfully: {cut_video_path}")
+                         # Generate subtitles for the audio
+                        ai_short_gen.generate_subtitles(audio_path)  # Generate subtitles
+                        
+                        # Add audio and subtitles to the cut video
+                        ai_short_gen.add_audio_to_video(cut_video_path, audio_path, 'assets/subtitles.srt')  # Add audio and subtitles to the cut video
+                    else:
+                        logging.error("Failed to cut video.")  # Log if cutting the video fails
+                else:
+                    logging.error("Calculated start time is invalid.")  # Log if start time calculation fails
+        else:
+            logging.error("Failed to generate script.")  # Log if script generation fails
     else:
         logging.error("Failed to download video.")  # Log if video download fails
 
 # Run the main function in an asyncio event loop
 import asyncio
 asyncio.run(main())
-
