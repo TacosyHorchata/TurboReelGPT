@@ -1,17 +1,17 @@
 # TurboReelGPT
 
-**TurboReelGPT** is your go-to tool for creating short, engaging videos for TikTok, Instagram Reels, and YouTube Shorts. Unlike other AI video generators, TurboReelGPT aims to be the first prompt-to-video model that focuses on making content feel real and engaging.
+**Welcome to TurboReelGPT!** Your new buddy for creating short videos for TikTok, Instagram Reels, and YouTube Shorts. Unlike other AI video generators out there, we’re all about making your content feel real.
 
-### What We’re About
+## What We're About
 
 Just like Midjourney changed the game for images, TurboReelGPT is here to transform how we make videos. Our mission is to help creators easily produce videos that connect with their audience on a human level.
 
-- **Example YouTube Video**: Check out this [example video](https://www.youtube.com/watch?v=Dljw1VYg-g0&list=TLGG7jhQJ1_OX9gwMzEwMjAyNA) to see what you can create with TurboReelGPT.
-![Video Preview](https://img.youtube.com/vi/Dljw1VYg-g0/0.jpg)
+- **Check This Out**: Want to see what you can create? Check out this [example video](https://youtu.be/4tFtKmXc-xE?si=KTb0MLfAYTe7eVtP).
+![Video Preview](https://i.ytimg.com/vi/4tFtKmXc-xE/hqdefault.jpg)
 
-### Our Roadmap
+## 🚀 Our Roadmap
 
-1. **Make Storytelling Even Better**: Work on improving how we tell stories in videos.
+1. **Storytelling**: Work on improving how we tell stories in videos.
 2. **Stock Images Galore**: Add more stock images for users to choose from.
 3. **More Voice Options**: Introduce even more human-like voice choices.
 4. **AI-Generated Images**: Let users create and use AI-generated images in their videos.
@@ -20,47 +20,56 @@ Just like Midjourney changed the game for images, TurboReelGPT is here to transf
 7. **AI for Image Recognition**: Use AI to recognize images and sync them better with videos.
 8. **Fun Video Remixing**: Let users remix and play around with existing videos.
 
-### Getting Started
+## 💡 Getting Started
 
 Ready to dive in? Here’s how to get started with TurboReelGPT:
 
-1. **Clone the repo**:
+1. **Clone the Repo**:
    ```bash
    git clone https://github.com/yourusername/turboreelgpt.git
    ```
-2. **Go to the project folder**:
+
+2. **Head to the Project Folder**:
    ```bash
    cd turboreelgpt
    ```
-3. **Make sure you have Python 3.10.12 installed**. You can download it from [python.org](https://www.python.org/downloads/release/python-31012/).
+
+3. **Make Sure You’ve Got Python**: Grab Python 3.10.x from [python.org](https://www.python.org/downloads/release/python-31012/).
 
 4. **Install FFmpeg and ImageMagick**:
-   - **For Windows**: You can download the binaries from the [FFmpeg](https://ffmpeg.org/download.html) and [ImageMagick](https://imagemagick.org/script/download.php) websites and add them to your system's PATH.
-   - **For macOS**: You can use Homebrew to install them:
+   - **For Windows**: Download the binaries from [FFmpeg](https://ffmpeg.org/download.html) and [ImageMagick](https://imagemagick.org/script/download.php). Just add them to your system's PATH.
+   - **For macOS**: Use Homebrew (if you haven’t tried it yet, now’s the time!):
      ```bash
      brew install ffmpeg imagemagick
      ```
-   - **For Linux**: Use your package manager to install them:
+   - **For Linux**: Just use your package manager:
      ```bash
      sudo apt-get install ffmpeg imagemagick
      ```
 
-5. **Install the required Python packages**:
+5. **Get the Required Python Packages**:
    ```bash
    pip install -r requirements.txt
    ```
-6. **Launch the app**:
+
+6. **Grab Your API Keys**: You’ll need keys for OPENAI (for generating scripts) and PEXELS (for fetching images). Get your PEXELS API key [here](https://www.pexels.com/api/key/).
+
+7. **Set Up Your Config**: Create a `config.yaml` file in the root folder. Clone `config-example.yaml`, fill it in with your API keys and desired settings.
+
+8. **Launch the App**:
    ```bash
    python app.py
    ```
 
-### Want to Help?
+   **Heads Up**: This project uses YT-DLP for downloading YouTube videos, and it needs cookies to work properly. So, automating this in a VM might not be the best idea. Instead, download some videos manually, toss them in the assets folder, and change the "video path" in `app.py` (around line 219) to point to your downloaded videos.
 
-We’d love your help! If you want to contribute to TurboReelGPT, here’s what to do:
+## 🤗 Want to Help?
 
-1. **Fork the repo**.
-2. **Create a new branch** for your feature or fix.
-3. **Make your changes and commit them**.
-4. **Push your branch** and submit a pull request.
+We’d love your help! If you’re excited to contribute to TurboReelGPT, here’s how you can jump in:
 
-- **Join our Discord**: Connect with us and other creators on our [Discord server](https://discord.gg/4dnynCSN).
+1. **Fork the Repo**.
+2. **Create a New Branch** for your feature or fix.
+3. **Make Your Changes and Commit Them**.
+4. **Push Your Branch** and submit a pull request.
+
+- **Join Our Crew**: Let’s connect! Join us and other creators on our [Discord server](https://discord.gg/4dnynCSN). We can’t wait to see what you create!

@@ -1,15 +1,16 @@
 import os
 import logging
 import requests
-from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
-from openai import OpenAI  # Correct import
+from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, ImageClip
+from openai import OpenAI
 import whisper
-import pysrt  # or any other subtitle handling library
+import pysrt
 from yt_dlp import YoutubeDL
-from pathlib import Path  # Import Path for file handling
-from PIL import Image
+from pathlib import Path
+import random
+import yaml
 
-from dotenv import load_dotenv  # To load environment variables
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,11 +18,23 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-import random  # Import random module
+from ImageHandler import ImageHandler
+
+def load_config(file_path):
+    """Load the YAML configuration file."""
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+def load_prompt(file_path):
+    """Load the YAML prompt template file."""
+    with open(file_path, 'r') as file:
+        prompt_template_file = yaml.safe_load(file)
+    return prompt_template_file
 
 class AIShortGenerator:
     def __init__(self, openai_api_key):
-        self.openai = OpenAI(api_key=openai_api_key)  # Initialize OpenAI with the API key
+        self.openai = OpenAI(api_key=openai_api_key)
 
     def download_video(self, youtube_url):
         try:
@@ -33,6 +46,7 @@ class AIShortGenerator:
                     'preferedformat': 'mp4',
                 }]
             }
+            
             with YoutubeDL(ydl_opts) as ydl:
                 ydl.download([youtube_url])
                 info_dict = ydl.extract_info(youtube_url, download=False)
@@ -40,6 +54,7 @@ class AIShortGenerator:
                 # Ensure the video path is in mp4 format
                 if not video_path.endswith('.mp4'):
                     video_path = video_path.rsplit('.', 1)[0] + '.mp4'
+
             logging.info("Video downloaded successfully.")
             return video_path  # Return the path of the downloaded video
         except Exception as e:
@@ -59,14 +74,14 @@ class AIShortGenerator:
         except Exception as e:
             logging.error(f"Error cutting video: {e}")
 
-    async def generate_script(self, key_points):
+    async def generate_script(self, key_points, prompt_template):
         try:
             completion = self.openai.chat.completions.create(  # Async call to create chat completion
                 model="gpt-3.5-turbo-0125",
                 max_tokens=250,
                 messages=[
-                    {"role": "system", "content": "You are a reddit stories narrator"},
-                    {"role": "user", "content": f"Tell a 20 seconds reddit storie based on the following points: {key_points}"}
+                    {"role": "system", "content": f"{prompt_template['system_prompt']}"},
+                    {"role": "user", "content": f"{prompt_template['user_prompt']} {key_points}"}
                 ]
             )
             logging.info("Script generated successfully.")
@@ -131,20 +146,14 @@ class AIShortGenerator:
         except Exception as e:
             logging.error(f"Error generating voice: {e}")
 
-    async def generate_short(self, youtube_url, start_time, end_time, key_points):
-        video_path = self.download_video(youtube_url)
-        if video_path:
-            cut_video_path = self.cut_video(video_path, start_time, end_time)
-            script = await self.generate_script(key_points)
-            if script:
-                audio_path = await self.generate_voice(script)
-                if audio_path:
-                    self.generate_subtitles(audio_path)  # Generate subtitles
-                    self.add_audio_to_video(cut_video_path, audio_path, 'assets/subtitles.srt')  # Add audio and subtitles to the cut video
-        else:
-            logging.error("Failed to download video.")  # Log if video download fails
+    def load_subtitles(self, subtitles_path):
+        try:
+            return pysrt.open(subtitles_path)  # Return the loaded SRT file with start and end times
+        except Exception as e:
+            logging.error(f"Error loading subtitles: {e}")
+            return []  # Return empty list on failure
 
-    def add_audio_to_video(self, video_path, audio_path, subtitles_path):
+    def add_audio_and_captions_to_video(self, video_path, audio_path, subtitles_path):
         try:
             video_clip = VideoFileClip(video_path)
             audio_clip = AudioFileClip(str(audio_path))
@@ -174,31 +183,43 @@ class AIShortGenerator:
 
             # Combine the video and subtitle clips
             final_clip = CompositeVideoClip([final_clip] + annotated_clips)
-            final_clip.write_videofile("result/final_video.mp4")  # Save the final video
+            #final_clip.write_videofile("result/final_video.mp4")  # Save the final video
             logging.info("Audio and subtitles added to video successfully.")
+            return final_clip
         except Exception as e:
             logging.error(f"Error adding audio and subtitles to video: {e}")
 
-    def load_subtitles(self, subtitles_path):
-        try:
-            return pysrt.open(subtitles_path)  # Return the loaded SRT file with start and end times
-        except Exception as e:
-            logging.error(f"Error loading subtitles: {e}")
-            return []  # Return empty list on failure
+    def add_images_to_video(self, video_clip, images):
+        """Add images to the video at specified intervals."""
+        clips = [video_clip]
+        start_interval = 5 # Display each image for 5 seconds
+        for i, image_path in enumerate(images):
+            image_clip = ImageClip(image_path).set_duration(start_interval)  
+            image_clip = image_clip.set_position(('center', 70)).resize(height=video_clip.h / 3)  # Resize to fit video height
+            clips.append(image_clip.set_start(i * start_interval))  # Start each image clip at intervals
 
-# Define necessary parameters
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-YOUTUBE_URL = 'https://www.youtube.com/watch?v=gkeQUHvUvIE'
-SCRIPT = "horror story of an astronaut stranded in space"
+        final_clip = CompositeVideoClip(clips)
+        final_clip.write_videofile("result/final_video_with_images.mp4")  # Save the final video with images
+        logging.info("Eureka!!!")
 
-# Example Usage
 async def main():
-    logging.info("Starting the AI Short Generator process.")  # Log the start of the process
-    ai_short_gen = AIShortGenerator(OPENAI_API_KEY)  # Use getenv for safer access to environment variables
-    video_path = ai_short_gen.download_video(YOUTUBE_URL)
+
+    config = load_config('config.yaml')
+    prompt_template = load_prompt('prompt_templates/reddit_thread.yaml')
+
+    # Accessing configuration values
+    openai_api_key = config['api_keys']['OPENAI_API_KEY']
+    pexels_api_key = config['api_keys']['PEXELS_API_KEY']
+    youtube_url = config['assets']['YOUTUBE_URL']
+    video_topic = config['video_parameters']['VIDEO_TOPIC']
+
+    logging.info(f"Starting TurboReelGPT video generation process for topic: {video_topic}")  # Log the start of the process
+    ai_short_gen = AIShortGenerator(openai_api_key)  # Use getenv for safer access to environment variables
+    image_handler = ImageHandler(pexels_api_key, openai_api_key)
+    video_path = ai_short_gen.download_video(youtube_url)
     if video_path:
-        #logging.info(f"Video downloaded: {video_path}")  # Log the downloaded video path
-        script = await ai_short_gen.generate_script(SCRIPT)
+        logging.info(f"Video downloaded: {video_path}")  # Log the downloaded video path
+        script = await ai_short_gen.generate_script(video_topic, prompt_template)
         if script:
             logging.info("Script generated successfully.")  # Log successful script generation
             audio_path = await ai_short_gen.generate_voice(script)  # Store the generated audio path
@@ -220,9 +241,13 @@ async def main():
                         logging.info(f"Video cut successfully: {cut_video_path}")
                          # Generate subtitles for the audio
                         ai_short_gen.generate_subtitles(audio_path)  # Generate subtitles
-                        
+                        logging.info(f"Subtitles generated successfully")
+                        image_paths = image_handler.get_images_from_subtitles("assets/subtitles.srt", f"reddit thread about {video_topic}")
+                        logging.info(f"Downloaded images succesfully")
+                        logging.info(f"Added images to video succesfully")
                         # Add audio and subtitles to the cut video
-                        ai_short_gen.add_audio_to_video(cut_video_path, audio_path, 'assets/subtitles.srt')  # Add audio and subtitles to the cut video
+                        clip = ai_short_gen.add_audio_and_captions_to_video(cut_video_path, audio_path, 'assets/subtitles.srt')  # Add audio and subtitles to the cut video
+                        ai_short_gen.add_images_to_video(clip, image_paths) 
                     else:
                         logging.error("Failed to cut video.")  # Log if cutting the video fails
                 else:
