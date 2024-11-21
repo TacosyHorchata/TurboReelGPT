@@ -23,11 +23,12 @@
 
    ## Showcase 
 
+   https://github.com/user-attachments/assets/a0231e08-ec6e-4dea-b7de-44b4627ec185
+
    ### Story
-   https://github.com/user-attachments/assets/91469491-03fe-4548-951c-8e52f729d28a
 
    ### Reddit Stories
-   https://github.com/user-attachments/assets/a0231e08-ec6e-4dea-b7de-44b4627ec185
+   https://github.com/user-attachments/assets/91469491-03fe-4548-951c-8e52f729d28a
 
 
    ## Why Mediachain exists?
