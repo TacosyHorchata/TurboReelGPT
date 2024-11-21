@@ -6,8 +6,8 @@
    <a href="https://discord.gg/bby6DYsCPu">
       <img src="https://dcbadge.vercel.app/api/server/bby6DYsCPu?compact=true&style=flat">
    </a>
-   <a href="https://star-history.com/#tacosyhorchata/mediachain)">
-      <img src="https://img.shields.io/github/stars/tacosyhorchata/mediachain?style=social">
+   <a href="https://star-history.com/#turboreel/mediachain)">
+      <img src="https://img.shields.io/github/stars/turboreel/mediachain?style=social">
    </a>
    </p>
 
