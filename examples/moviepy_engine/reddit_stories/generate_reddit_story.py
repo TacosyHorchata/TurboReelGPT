@@ -1,6 +1,6 @@
 import yaml
 import logging
-from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip, CompositeAudioClip, ColorClip
+from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip, TextClip
 import random
 from openai import OpenAI
 import os
@@ -9,10 +9,8 @@ import re
 # Update the config loading to use the correct path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Accessing configuration values
-openai_api_key = os.getenv('OPENAI_API_KEY')
 
 """ TurboReel-Moviepy imports """
-from ..src.image_handler import ImageHandler
 from ..src.video_editor import VideoEditor
 from ..src.captions.caption_handler import CaptionHandler
 
@@ -23,21 +21,22 @@ from core.script.script_generation import generate_script
 # MediaChain Audio
 from core.audio.text_to_speech.tts_generation import generate_text_to_speech
 from core.audio.speech_to_text.stt_generation import generate_speech_to_text
-from core.image.utils.sync_with_script import generate_image_timestamps
+from core.image.utils.image_timestamps import generate_image_timestamps
 # MediaChain Image
 from core.image.generation.image_generation import generate_image
 
 class RedditStoryGenerator:
-    def __init__(self):
+    def __init__(self, openai_api_key: str):
         self.video_editor: VideoEditor = VideoEditor()
         self.caption_handler: CaptionHandler = CaptionHandler()
+        self.openai_api_key = openai_api_key
 
     async def create_reddit_question_clip(self, reddit_question: str, video_height: int = 720) -> tuple[TextClip, str]:
         """Create a text clip for the Reddit question and generate its audio."""
         try:
             # Generate audio for the Reddit question
-            reddit_question_audio_path: str = generate_text_to_speech("openai", openai_api_key, reddit_question) # this could be elevenlabs or azure_openai
-
+            reddit_question_audio_path: str = generate_text_to_speech("openai", self.openai_api_key, reddit_question, voice="echo") # this could be elevenlabs or azure_openai
+            logging.info(f"Reddit question audio path: {reddit_question_audio_path}")
             # Getting audio duration for further processing
             reddit_question_audio_clip: AudioFileClip = AudioFileClip(reddit_question_audio_path)
             reddit_question_audio_duration: float = reddit_question_audio_clip.duration
@@ -104,7 +103,8 @@ class RedditStoryGenerator:
 
             """ Handle Script Generation and Process """
             # Generate the script or use the provided script
-            script: dict = generate_script("openai", openai_api_key, video_topic)
+            logging.info(f"Generating script for the video topic: {video_topic}")
+            script: dict = generate_script("openai", self.openai_api_key, video_topic, model="gpt-3.5-turbo-0125")
             
             if not script:
                 logging.error("Failed to generate script.")
@@ -112,16 +112,19 @@ class RedditStoryGenerator:
 
             """ Define video length for each clip (question and story) """
             # Initialize Reddit clips
+            logging.info(f"Creating Reddit question clip for the video topic: {video_topic}")
             reddit_question_text_clip, reddit_question_audio_path = await self.create_reddit_question_clip(video_topic, video_height)
             reddit_question_audio_clip: AudioFileClip = AudioFileClip(reddit_question_audio_path)
             reddit_question_audio_duration: float = reddit_question_audio_clip.duration
             clips_to_close.append(reddit_question_audio_clip)
             # Initialize Background video
+            logging.info(f"Initializing Background video")
             background_video_clip: VideoFileClip = VideoFileClip(video_path)
             clips_to_close.append(background_video_clip)
             background_video_length: float = background_video_clip.duration
             ## Initialize Story Audio
-            story_audio_path: str = generate_text_to_speech("openai", openai_api_key, script)
+            logging.info(f"Generating story audio for the script: {script}")
+            story_audio_path: str = generate_text_to_speech("openai", self.openai_api_key, script, voice="echo")
             if not story_audio_path:
                 logging.error("Failed to generate audio.")
                 return {"status": "error", "message": "Failed to generate audio."}
@@ -136,6 +139,7 @@ class RedditStoryGenerator:
             end_time: float = start_time + reddit_question_audio_duration + story_audio_length
             
             """ Cut video once """
+            logging.info(f"Cutting video from {start_time} to {end_time}")
             cut_video_path: str = self.video_editor.cut_video(video_path, start_time, end_time)
             cut_video_clip = VideoFileClip(cut_video_path)
             clips_to_close.append(cut_video_clip)
@@ -146,19 +150,23 @@ class RedditStoryGenerator:
             reddit_question_video = self.video_editor.crop_video_9_16(reddit_question_video)
 
             # Add the text clip to the video
+            logging.info(f"Adding text clip to the video")
             reddit_question_video = CompositeVideoClip([
                 reddit_question_video,
                 reddit_question_text_clip.set_position(('center', 'center'))
             ])
 
             """ Handle story video """
+            logging.info(f"Subclipping video from {reddit_question_audio_duration} to {story_audio_length}")
             story_video = cut_video_clip.subclip(reddit_question_audio_duration)
             story_video = story_video.set_audio(story_audio_clip)
+            logging.info(f"Cropping video to 9:16")
             story_video = self.video_editor.crop_video_9_16(story_video)
 
             font_size = video_width * 0.025
 
             # Generate subtitles
+            logging.info(f"Generating subtitles for the story audio: {story_audio_path}")
             story_subtitles_path, story_subtitles_clips = await self.caption_handler.process(
                 story_audio_path, # THIS SHOULD RECEIVE A JSON WITH THE WORDS AND TIMESTAMPS
                 captions_settings.get('color', 'white'),
@@ -167,11 +175,13 @@ class RedditStoryGenerator:
                 captions_settings.get('font', 'LEMONMILK-Bold.otf')
             )
 
-            video_context: str = video_topic
-            story_image_paths = generate_image_timestamps("openai", openai_api_key, script) if add_images else [] # CREATE FUNCTION IN MEDIACHAIN
+            logging.info(f"Generating image timestamps for the script: {script}")
+            image_timestamps = generate_image_timestamps("openai", self.openai_api_key, script, model="gpt-3.5-turbo-0125") if add_images else [] # CREATE FUNCTION IN MEDIACHAIN
             
-            story_video = self.video_editor.add_images_to_video(story_video, story_image_paths, # ADD TIMESTAMPS TO EACH ADDED IMAGE
+            logging.info(f"Adding images to the story video")
+            story_video = await self.video_editor.add_images_to_video(story_video, image_timestamps) # ADD TIMESTAMPS TO EACH ADDED IMAGE
             
+            logging.info(f"Adding captions to the story video")
             story_video = self.video_editor.add_captions_to_video(story_video, story_subtitles_clips)
             # Combine clips
             combined_clips = CompositeVideoClip([
@@ -179,10 +189,11 @@ class RedditStoryGenerator:
                 story_video.set_start(reddit_question_audio_duration)
             ])
 
+            logging.info(f"Rendering final video")
             final_video_output_path = self.video_editor.render_final_video(combined_clips)
             
             # Cleanup: Ensure temporary files are removed
-            self.video_editor.cleanup_files([story_audio_path, cut_video_path, story_subtitles_path, reddit_question_audio_path], story_image_paths)
+            self.video_editor.cleanup_files([story_audio_path, cut_video_path, story_subtitles_path, reddit_question_audio_path])
             
             logging.info(f"FINAL OUTPUT PATH: {final_video_output_path}")
             return {"status": "success", "message": "Video generated successfully.", "output_path": final_video_output_path}

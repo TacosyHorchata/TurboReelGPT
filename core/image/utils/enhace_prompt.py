@@ -3,7 +3,7 @@ from openai import AzureOpenAI
 from typing import Literal
 import json
 
-def enhance_prompt(service: Literal["openai", "azure_openai"], api_key: str, prompt: str, azure_config: dict = None, model: str = None):
+def enhance_prompt(service: Literal["openai", "azure_openai"], api_key: str, prompt: str, model: str, azure_config: dict = None):
     if service == "openai":
         try:
             return enhance_prompt_openai(api_key, prompt, model)

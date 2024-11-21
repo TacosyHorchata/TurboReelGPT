@@ -23,17 +23,21 @@ def generate_azure_openai_text_to_speech(api_key: str, text: str, azure_config: 
         deployment=azure_config["deployment"]
     )
 
+    # Create tmp directory if it doesn't exist
+    tmp_dir = Path("tmp")
+    tmp_dir.mkdir(exist_ok=True)
+
     # Generate unique filename
-    output_file = Path("tmp") / f"tts_audio_{uuid.uuid4()}.mp3"
+    output_file = tmp_dir / f"tts_audio_{uuid.uuid4()}.mp3"
     
     # Use streaming response
-    with client.audio.speech.create(
+    response = client.audio.speech.create(
         input=text,
         voice=voice,
-        model="tts"
-    ).with_streaming_response() as response:
-        with open(output_file, 'wb') as f:
-            for chunk in response.iter_bytes():
-                f.write(chunk)
+        model="tts-1"
+    )
+    
+    # Save the audio content
+    response.stream_to_file(output_file)
     
     return str(output_file)

@@ -7,7 +7,7 @@ TurboReel initially relied on **moviepy** as its video engine. However, we are t
 
 ## Using Moviepy  
 
-If you still prefer to use **MoviePy**, we've included examples to run deprecated workflows showcasing how **MediaChain** can be utilized with it.  
+If you still prefer to use **MoviePy**, we've included examples to run deprecated workflows showcasing how **Mediachain** can be utilized with it.  
 
 ### Pros of MoviePy:
 - Simple and intuitive for basic video manipulations.
@@ -18,7 +18,7 @@ If you still prefer to use **MoviePy**, we've included examples to run deprecate
 - No active maintenance.
 - No live preview, requires rendering to view results.
 
-While MoviePy may still be a great tool for some users, we encourage the community to consider adopting and maintaining the library if they find value in it.  
+MoviePy may still be a great tool for some users, we encourage the community to consider adopting and maintaining the library if they find value in it.  
 
 ---
 
@@ -36,8 +36,4 @@ While MoviePy may still be a great tool for some users, we encourage the communi
 - Harder to learn for new developers.
 - Rendering is just available in the browser, CLI or in a server environment.
 
-While we continue to explore the best video engines for **TurboReel**, **MediaChain** remains compatible with various engines, ensuring flexibility for users. For projects requiring more precise control over video manipulations and faster development cycles, we highly recommend using **Revideo**.
-
----
-
-Let us know how you’re using **MediaChain** and share your experiences with either **MoviePy** or **Revideo**, we’re excited to hear from you!
+For projects requiring more precise control over video manipulations and faster development cycles, we highly recommend using **Revideo**.

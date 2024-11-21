@@ -8,13 +8,14 @@ azure_config_interface = {
     "azure_api_version": str
 }
 
-def generate_image_timestamps(service: Literal['openai', 'azure_openai'], api_key: str, script: str, azure_config: dict = None, model: str = None):
+def generate_image_timestamps(service: Literal['openai', 'azure_openai'], api_key: str, script: str, model: str, azure_config: dict = None):
     # Validate all required config fields are present and of correct type
-    for key, expected_type in azure_config_interface.items():
-        if key not in azure_config:
-            raise ValueError(f"{key} is required")
-        if not isinstance(azure_config[key], expected_type):
-            raise ValueError(f"{key} must be of type {expected_type.__name__}")
+    if azure_config is not None:
+        for key, expected_type in azure_config_interface.items():
+            if key not in azure_config:
+                raise ValueError(f"{key} is required")
+            if not isinstance(azure_config[key], expected_type):
+                raise ValueError(f"{key} must be of type {expected_type.__name__}")
 
     if service == 'openai':
         try:
@@ -26,8 +27,6 @@ def generate_image_timestamps(service: Literal['openai', 'azure_openai'], api_ke
             return generate_image_timestamps_azure(api_key, script, azure_config, model)
         except Exception as e:
             raise ValueError(f"Error syncing with script using Azure OpenAI: {e}")
-    else:
-        raise ValueError(f"Invalid service: {service}")
 
 def generate_image_timestamps_azure(api_key: str, script_with_timestamps: str, azure_config: dict, model: str = "gpt-35-turbo"):
     client = AzureOpenAI(api_key=api_key, 
@@ -63,7 +62,9 @@ You are a specialized video editing assistant tasked with associating images to 
     1. Identify the key timestamps where an image should be added.  
     2. Always include timestamp (0.00), since will be used as a starting point.
     3. Output the identified timestamps in JSON format.
-    4. Add 5 images to the video. Try to space them out evenly.
+    4. Add 5 images to the video.
+    5. Make sure to space them evenly according to the video duration.
+    - Example: If the video duration is 10 seconds, the images should be spaced 2 seconds apart.
 
     **Guidelines for Images:**
     - Create highly visual, cinematic scenes

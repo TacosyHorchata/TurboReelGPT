@@ -5,7 +5,7 @@ from typing import Literal
 
 # todo: Literal for voice in each service. E.g. elevenlabs voice ["Brian", "Adam", "Rachel"], openai voice ["alloy", "echo", "fable", "nova", "shimmer"]
 
-def generate_text_to_speech(service: Literal["openai", "azure_openai", "elevenlabs"],api_key: str, text: str, voice: str = None, azure_config: dict = None) -> str:
+def generate_text_to_speech(service: Literal["openai", "azure_openai", "elevenlabs"], api_key: str, text: str, voice: str, azure_config: dict = None) -> str:
     if service == "openai":
         try:
             return generate_openai_text_to_speech(api_key, text, voice)

@@ -51,13 +51,30 @@ class VideoEditor:
         self.openai = OpenAI(api_key=openai_api_key)
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    def download_video(self, youtube_url):
+    def download_video(self, youtube_url, quality="480"):
         try:
             downloads_dir = os.path.join(self.base_dir, '..', 'downloads')
             os.makedirs(downloads_dir, exist_ok=True)
+            
+            # First extract info without downloading to get video details
+            with YoutubeDL({'quiet': True}) as ydl:
+                info_dict = ydl.extract_info(youtube_url, download=False)
+                video_id = info_dict['id']
+            
+            # Create a filename that includes quality
+            quality_suffix = f"{quality}p"
+            safe_filename = f"{video_id}_{quality_suffix}"
+            video_path = os.path.join(downloads_dir, f"{safe_filename}.mp4")
+            
+            # Check if file already exists
+            if os.path.exists(video_path):
+                logging.info(f"Video already exists at {quality_suffix}: {video_path}")
+                return video_path
+            
             ydl_opts = {
-                'format': 'bestvideo[height<=720]+bestaudio',
-                'outtmpl': os.path.join(downloads_dir, '%(title)s.%(ext)s'),
+                'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]',
+                'outtmpl': os.path.join(downloads_dir, safe_filename),
+                'merge_output_format': 'mp4',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
                     'preferedformat': 'mp4',
@@ -66,11 +83,6 @@ class VideoEditor:
             
             with YoutubeDL(ydl_opts) as ydl:
                 ydl.download([youtube_url])
-                info_dict = ydl.extract_info(youtube_url, download=False)
-                video_path = ydl.prepare_filename(info_dict)
-                # Ensure the video path is in mp4 format
-                if not video_path.endswith('.mp4'):
-                    video_path = video_path.rsplit('.', 1)[0] + '.mp4'
 
             logging.info("Video downloaded successfully.")
             return video_path
@@ -154,7 +166,7 @@ class VideoEditor:
             logging.error(f"Error adding captions to video: {e}")
             return None
 
-    def add_images_to_video(self, video_clip, images):
+    async def add_images_to_video(self, video_clip, images):
         """This function receives the following object
         **Example JSON Output:**
             {
@@ -168,22 +180,26 @@ class VideoEditor:
             }
 
         """
+        logging.info("Adding images to video", images)
         clips = [video_clip]
         video_duration = video_clip.duration
-
+        
+        logging.info("Enhancing prompts")
         # Enhance prompts and generate images
         for i, image_object in enumerate(images):
             prompt = image_object["prompt"]
-            enhanced_prompt = enhance_prompt("openai", openai_api_key, prompt)
+            enhanced_prompt = enhance_prompt("openai", openai_api_key, prompt, model="gpt-3.5-turbo-0125")
             images[i]["enhanced_prompt"] = enhanced_prompt
 
+        logging.info("Generating images")
         # Generate and download images
         for i, image_object in enumerate(images):
-            image_url = generate_image(image_object["enhanced_prompt"])
+            image_url = await generate_image(service="pollinations", prompt=image_object["enhanced_prompt"])
             images[i]["image_url"] = image_url
             image_path = download_image(image_object["image_url"])
             images[i]["image_path"] = image_path
 
+        logging.info("Adding images to video")
         # Add images with timestamps
         for i, image_object in enumerate(images):
             if image_object["image_path"] is not None:

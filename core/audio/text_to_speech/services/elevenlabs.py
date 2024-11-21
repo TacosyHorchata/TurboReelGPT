@@ -24,8 +24,9 @@ def generate_elevenlabs_text_to_speech(api_key: str, text: str, voice: str = "Br
     )
 
     # Generate unique filename
-    output_file = Path("tmp") / f"tts_audio_{uuid.uuid4()}.mp3"
-    output_file.parent.mkdir(exist_ok=True)
+    tmp_dir = Path("tmp")
+    tmp_dir.mkdir(exist_ok=True)
+    output_file = tmp_dir / f"tts_audio_{uuid.uuid4()}.mp3"
     
     # Save the audio content
     with open(output_file, "wb") as f:
